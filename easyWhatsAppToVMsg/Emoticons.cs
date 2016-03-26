@@ -599,6 +599,9 @@ namespace easyWhatsAppToVMsg
         };
 
         public static byte[] replaceEmojis(char[] c) {
+            if (c.Length == 0)
+                return new byte[0];
+
             byte[] r = new byte[c.Length * 4]; //TODO: nothing added?
             int j = 0;
 

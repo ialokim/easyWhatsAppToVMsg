@@ -25,16 +25,16 @@ namespace easyWhatsAppToVMsg
     public partial class MainWindow : Window
     {
         const string regex = @"(\d{2}\.\d{2}\.\d{4} \d{2}\:\d{2}\:\d{2})\: ([^\:]*)\: (.*)";
-        //const string regex = @"(\d{2}\.\d{2}\.\d{4} \d{2}\:\d{2}\:\d{2})\: (.*)\: (.*)";
         const int current_output_max_standard = 200;
 
         const string debug_source_folder = @"D:\_Mikolai\Meine Dokumente\__Backups\__Neues Handy\Alte Whatsapp";
         const string debug_target_folder = @"D:\_Mikolai\Meine Dokumente\__Backups\__Neues Handy\Alte Whatsapp";
+        const string debug_address_file = @"D:\_Mikolai\Meine Dokumente\__Backups\__Neues Handy\Contacts_Mobile_only.csv";
         const string debug_my_name = @"Mikolai Gütschow";
 
-        string anotherone = "";
-        string anothernumber = "";
-
+        Dictionary<string, string> addressbook_dict = new Dictionary<string, string>();
+        string addressbook_current_name = "";
+        string addressbook_current_tel = "";
 
         StringBuilder current_output = new StringBuilder();
         int current_output_count = 0;
@@ -48,6 +48,7 @@ namespace easyWhatsAppToVMsg
 
             source_folder.Text = debug_source_folder;
             target_folder.Text = debug_target_folder;
+            address_file.Text = debug_address_file;
             my_name.Text = debug_my_name;
             replace_emojis.IsChecked = true;
         }
@@ -153,6 +154,10 @@ namespace easyWhatsAppToVMsg
         }
 
         private void start_Click(object sender, RoutedEventArgs e) {
+            current_output.Clear();
+            current_output_count = 0;
+            current_output_idx = 0;
+
             var myself = my_name.Text;
             if (String.IsNullOrEmpty(myself)) {
                 MessageBox.Show("Bitte gib deinen Namen genau so an, wie er in den TXT-Dateien auftaucht!");
@@ -165,6 +170,39 @@ namespace easyWhatsAppToVMsg
                 MessageBox.Show("Die maximale Anzahl an Nachrichten sollte nur Zahlen enthalten!");
                 return;
             }
+
+            var addressbook = address_file.Text;
+            addressbook_dict.Clear();
+            if (File.Exists(addressbook)) {
+                string[] lines = File.ReadAllLines(addressbook, Encoding.UTF8);
+
+                if (lines.Length == 0)
+                    MessageBox.Show("In der Adressbuch-Datei wurden keine Zeilen gefunden! Es wird nach jeder Nummer einzeln gefragt.\nDatei: " + addressbook);
+
+                for (int i = 0; i < lines.Length; i++) {
+                    var line = lines[i];
+                    Match match = Regex.Match(line, "([^,]*),([^,]*)");
+                    if (!match.Success) {
+                        MessageBox.Show("Die Zeile " + (i + 1) + " der Adressbuch-Datei hat nicht das richtige Format! Diese Zeile wurde nicht eingelesen.\nDatei: " + addressbook + "\nZeile: " + line);
+                        continue;
+                    }
+
+                    var n = match.Groups[1].Value;
+                    var t = match.Groups[2].Value;
+
+                    if (!String.IsNullOrEmpty(t)) {
+                        if (addressbook_dict.ContainsKey(n))
+                            MessageBox.Show("Der Name " + n + " ist laut Adressbuch-Datei mehrdeutig!\n Das kann zu erheblichen Problemen beim Import führen. Die Zeile " + (i+1) + " wird beim Einlesen ignoriert.\nDatei: " + addressbook + "\nZeile: " + line);
+                        else
+                            addressbook_dict.Add(n, t);
+                    }
+                }
+
+                if (addressbook_dict.Count == 0)
+                    MessageBox.Show("In der Adressbuch-Datei wurden keine Einträge gefunden! Es wird nach jeder Nummer einzeln gefragt.\nDatei: " + addressbook);
+
+            } else
+                MessageBox.Show("Die gewählte Adressbuch-Datei wurde nicht gefunden. Es wird nach jeder Nummer einzeln gefragt.\nAdressbuch-Datei: " + addressbook);
 
             var target = target_folder.Text;
             if (target.EndsWith("\\"))
@@ -199,26 +237,31 @@ namespace easyWhatsAppToVMsg
                     continue;
                 }
 
+                var name = "";
                 //find first line with not sent!
                 foreach (var line in lines) {
                     Match match = Regex.Match(line, regex);
                     if (!match.Success)
                         continue;
 
-                    var n = match.Groups[2].Value;
-                    if (n != myself) {
-                        string number = "";
-                        System.Windows.Forms.DialogResult dr = System.Windows.Forms.DialogResult.Cancel;
-                        while (dr == System.Windows.Forms.DialogResult.Cancel)
-                            dr = InputBox.Show("", "\"" + n + "\" als Gesprächspartner gefunden.\nBitte geben Sie die entsprechende Telefonnummer ein (mit Ländervorwahl und ohne Leerzeichen, Bsp. +4917678959947).", ref number);
-                        while (!Regex.IsMatch(number, @"\+\d{7,15}"))
-                            InputBox.Show("", "\"" + n + "\" als Gesprächspartner gefunden.\nDie Telefonnummer scheint ungültig zu sein. Versuchen Sie es bitte erneut!", ref number);
+                    name = match.Groups[2].Value;
+                    if (name != myself) {
+                        if (!addressbook_dict.ContainsKey(name)) {
+                            string number = "";
+                            System.Windows.Forms.DialogResult dr = System.Windows.Forms.DialogResult.Cancel;
+                            while (dr == System.Windows.Forms.DialogResult.Cancel)
+                                dr = InputBox.Show("", "\"" + name + "\" als Gesprächspartner gefunden.\nBitte geben Sie die entsprechende Telefonnummer ein (mit Ländervorwahl und ohne Leerzeichen, Bsp. +4917678959947).", ref number);
+                            while (!Regex.IsMatch(number, @"\+\d{7,15}"))
+                                InputBox.Show("", "\"" + name + "\" als Gesprächspartner gefunden.\nDie Telefonnummer scheint ungültig zu sein. Versuchen Sie es bitte erneut!", ref number);
 
-                        anotherone = n;
-                        anothernumber = number;
+                            addressbook_dict.Add(name, number);
+                        }
                         break;
                     }
                 } //TODO: what if no message from anotherone?!!
+
+                addressbook_current_name = name;
+                addressbook_current_tel = addressbook_dict[name];
 
                 bool error = false;
                 for (int i=0; i<lines.Length; i++) {
@@ -236,7 +279,7 @@ namespace easyWhatsAppToVMsg
                         continue;
                     } else if (i > 0) {
                         //found new message > save old one to result
-                        appendSMS(anothernumber, sent, date, message);
+                        appendSMS(addressbook_current_tel, sent, date, message);
                     }
                     var d = match.Groups[1].Value;
                     var n = match.Groups[2].Value;
@@ -248,14 +291,14 @@ namespace easyWhatsAppToVMsg
 
                     sent = n == myself;
 
-                    if (!sent && n != anotherone) {
+                    if (!sent && n != addressbook_current_name) {
                         MessageBox.Show("Unbekannter Name gefunden: " + n + "\nWird abgebrochen!");
                         return;
                     }
                 }
                 if (!error) {
                     //save last message to result
-                    appendSMS(anothernumber, sent, date, message);
+                    appendSMS(addressbook_current_tel, sent, date, message);
                 }
             }
 
