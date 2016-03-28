@@ -57,7 +57,10 @@
     </ApplicationDefinition>
     <Compile Include="Emoticons.cs" />
     <Compile Include="InputBox.cs" />
+    <Compile Include="Message.cs" />
     <Compile Include="QPEncoder.cs" />
+    <Compile Include="Thread.cs" />
+    <Compile Include="VMSG.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

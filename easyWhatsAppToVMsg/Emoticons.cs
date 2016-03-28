@@ -598,6 +598,11 @@ namespace easyWhatsAppToVMsg
 
         };
 
+        public static string replaceEmojis(string withSoftbankEmojis)
+        {
+            return Encoding.UTF8.GetString(replaceEmojis(withSoftbankEmojis.ToCharArray()));
+        }
+
         public static byte[] replaceEmojis(char[] c) {
             if (c.Length == 0)
                 return new byte[0];
