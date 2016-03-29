@@ -36,15 +36,75 @@ namespace easyWhatsAppToVMsg
             @"(\d{2}\.\d{2}\.\d{4}, \d{2}\:\d{2}) - ([^\:]*)\: (.*)" //Android
         };
 
-        private static string[] regexMetaLine = new string[]
+        private static string[][] regexMetaLine = new string[][]
         {
-            ".* hat Gruppe \".*\" erstellt",
-            ".* hat .* hinzugefügt",
-            ".* hat ‪.* entfernt",
-            ".* hat den Betreff zu \".*\" geändert",
-            ".* hat das Gruppenbild geändert",
-            ".* hat das Gruppenbild gelöscht"
-            //TODO: hier fehlt garantiert noch was!
+            //WP
+            new string[]
+            {
+                //group created
+                ".* hat diese Gruppe erstellt",
+                "Du hast diese Gruppe erstellt",
+                ".* hat Gruppe \".*\" erstellt",
+                "Du hast die Gruppe \".*\" erstellt",
+                //group ended
+                ".* hat die Gruppe aufgelöst",
+                "Du hast die Gruppe aufgelöst",
+                //user added
+                ".* wurde hinzugefügt",
+                "Du wurdest hinzugefügt",
+                ".* hat .* hinzugefügt",
+                "Du hast .* hinzugefügt",
+                //user removed
+                ".* wurde entfernt",
+                "Du wurdest entfernt",
+                ".* hat ‪.* entfernt",
+                "Du hast .* entfernt",
+                //user number changed
+                ".* geändert zu .*",
+                //change subject
+                ".* hat den Betreff zu \".*\" geändert",
+                "Du hast den Betreff zu \".*\" geändert",
+                //change group icon
+                ".* hat das Gruppenbild geändert",
+                "Du hast das Gruppenbild geändert",
+                //remove group icon
+                ".* hat das Gruppenbild gelöscht",
+                "Du hast das Gruppenbild gelöscht"
+                //TODO: hier fehlt garantiert noch was!
+            },
+            //Android
+            new string[]
+            {
+                //group created
+                ".* hat die Gruppe \".*\" erstellt",
+                "Du hast die Gruppe \".*\" erstellt",
+                //group ended
+                ".* hat diese Gruppe aufgelöst",
+                "Du hast diese Gruppe aufgelöst",
+                //user added
+                ".* wurde hinzugefügt",
+                "Du wurdest hinzugefügt",
+                ".* hat .* hinzugefügt",
+                "Du hast .* hinzugefügt",
+                //user removed
+                ".* wurde entfernt",
+                "Du wurdest entfernt",
+                ".* hat ‪.* entfernt",
+                "Du hast .* entfernt",
+                //user number changed to
+                ".* hat zu .* gewechselt",
+                //subject changed
+                ".* hat den Betreff zu \".*\" geändert",
+                "Du hast den Betreff zu \".*\" geändert",
+                //group icon changed
+                ".* hat das Gruppenbild geändert",
+                "Du hast das Gruppenbild geändert",
+                //group icon removed
+                "Gruppenbild wurde gelöscht",
+                ".* hat das Gruppenbild gelöscht",
+                "Du hast das Gruppenbild gelöscht"
+                //TODO: hier fehlt garantiert noch was!
+            }
         };
 
         private string _name;
@@ -111,7 +171,7 @@ namespace easyWhatsAppToVMsg
                     bool found = false;
                     for (int j = 0; j < regexMetaLine.Length; j++)
                     {
-                        match = Regex.Match(line, regexMetaLine[j]);
+                        match = Regex.Match(line, regexMetaLine[importFormat][j]);
                         if (match.Success)
                         {
                             _messages.Add(Message.MetaMessage(line));
